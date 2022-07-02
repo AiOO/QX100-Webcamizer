@@ -22,6 +22,28 @@ QX100_COMMON_DATA = {
 }
 
 
+class ShootMode(enum.Enum):
+    still = ('still', (640, 480))
+    movie = ('movie', (640, 360))
+
+
+def set_shoot_mode(shoot_mode: ShootMode):
+    response = post(
+        f'{QX100_BASE_URL}/camera',
+        data=json.dumps(
+            dict(
+                method='setShootMode',
+                params=[shoot_mode.value[0]],
+                **QX100_COMMON_DATA,
+            ),
+        ),
+        headers=QX100_COMMON_HEADERS,
+    )
+    assert response.json() == dict(
+        result=[0], id=1
+    ), 'Shoot mode change failed'
+
+
 def get_liveview_url() -> str:
     response = post(
         f'{QX100_BASE_URL}/camera',
