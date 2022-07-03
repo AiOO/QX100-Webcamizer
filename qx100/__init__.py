@@ -69,11 +69,12 @@ def capture_liveview_images(liveview_url: str, camera: Camera) -> bytes:
         if end_index != -1:
             buffer += content[: end_index + 2]
             image = imread(buffer)
-            frame = zeros((camera.height, camera.width, 3), numpy_uint8)
-            frame[:] = 0
-            frame[0 : camera.height, 0 : camera.width] = image
-            camera.send(frame)
-            camera.sleep_until_next_frame()
+            height, width, _ = image.shape
+            if height == camera.height and width == camera.width:
+                frame = zeros((camera.height, camera.width, 3), numpy_uint8)
+                frame[0 : camera.height, 0 : camera.width] = image
+                camera.send(frame)
+                camera.sleep_until_next_frame()
         if start_index != -1:
             buffer = content[start_index:]
         else:
