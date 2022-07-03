@@ -1,3 +1,5 @@
+from click import Choice, command, option
+
 from pyvirtualcam import Camera
 from qx100 import (
     ShootMode,
@@ -7,8 +9,16 @@ from qx100 import (
 )
 
 
-def main():
-    shoot_mode = ShootMode.still
+@command()
+@option(
+    '--mode',
+    type=Choice(['still', 'movie']),
+    default='movie',
+    help='Choose camera shoot mode.',
+    show_default='movie',
+)
+def main(mode: str):
+    shoot_mode = ShootMode[mode]
     set_shoot_mode(shoot_mode)
     liveview_url = get_liveview_url()
     with Camera(*shoot_mode.value[1], 30) as camera:
