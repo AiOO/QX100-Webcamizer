@@ -40,12 +40,13 @@ Then use your virtual camera!
 You can choose shoot mode between `still` and `movie`.
 
 ```console
-$ python run.py --mode still
+$ python run.py --mode movie
 ```
 
 According to my experiment, the still mode can achieve an aspect ratio of 4:3,
 but the focus shifts unnaturally. And the movie mode can achieve an aspect
-ratio cropped 16:9, and the focus shifts naturally.
+ratio cropped 16:9, and the focus shifts naturally. But, various camera
+settings are limited.
 
 ## FYI
 

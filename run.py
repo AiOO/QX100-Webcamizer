@@ -34,9 +34,9 @@ def capture_liveview_images(liveview_url: str, camera: Camera) -> bytes:
 @option(
     '--mode',
     type=Choice(['still', 'movie']),
-    default='movie',
+    default='still',
     help='Choose camera shoot mode.',
-    show_default='movie',
+    show_default='still',
 )
 def main(mode: str):
     shoot_mode = ShootMode[mode]
