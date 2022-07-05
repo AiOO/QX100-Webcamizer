@@ -1,4 +1,4 @@
-# Sony DSC QX-100 Webcamizer
+# Sony DSC-QX100 Webcamizer
 
 You can use your DSC-QX100 as webcam.
 
