@@ -1,7 +1,7 @@
 import enum
 import json
 
-from requests import get, post
+from aiohttp import ClientSession
 
 QX100_HOST = '10.0.0.1'
 QX100_PORT = 10000
@@ -22,33 +22,31 @@ class ShootMode(enum.Enum):
     movie = ('movie', (640, 360))
 
 
-def set_shoot_mode(shoot_mode: ShootMode):
-    response = post(
-        f'{QX100_BASE_URL}/camera',
-        data=json.dumps(
-            dict(
+async def set_shoot_mode(shoot_mode: ShootMode):
+    async with ClientSession() as session:
+        async with session.post(
+            f'{QX100_BASE_URL}/camera',
+            json=dict(
                 method='setShootMode',
                 params=[shoot_mode.value[0]],
                 **QX100_COMMON_DATA,
             ),
-        ),
-        headers=QX100_COMMON_HEADERS,
-    )
-    assert response.json() == dict(
-        result=[0], id=1
-    ), 'Shoot mode change failed'
+            headers=QX100_COMMON_HEADERS,
+        ) as response:
+            result = await response.json()
+            assert result == dict(result=[0], id=1), 'Shoot mode change failed'
 
 
-def get_liveview_url() -> str:
-    response = post(
-        f'{QX100_BASE_URL}/camera',
-        data=json.dumps(
-            dict(
+async def get_liveview_url() -> str:
+    async with ClientSession() as session:
+        async with session.post(
+            f'{QX100_BASE_URL}/camera',
+            json=dict(
                 method='startLiveview',
                 params=[],
                 **QX100_COMMON_DATA,
             ),
-        ),
-        headers=QX100_COMMON_HEADERS,
-    )
-    return response.json()['result'][0]
+            headers=QX100_COMMON_HEADERS,
+        ) as response:
+            result = await response.json()
+            return result['result'][0]
