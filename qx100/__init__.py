@@ -1,7 +1,9 @@
+import asyncio
 import enum
 import json
+import typing
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 QX100_HOST = '10.0.0.1'
 QX100_PORT = 10000
@@ -16,37 +18,45 @@ QX100_COMMON_DATA = {
     'version': '1.0',
 }
 
+timeout = ClientTimeout(total=3)
+
 
 class ShootMode(enum.Enum):
     still = ('still', (640, 480))
     movie = ('movie', (640, 360))
 
 
-async def set_shoot_mode(shoot_mode: ShootMode):
-    async with ClientSession() as session:
-        async with session.post(
-            f'{QX100_BASE_URL}/camera',
-            json=dict(
-                method='setShootMode',
-                params=[shoot_mode.value[0]],
-                **QX100_COMMON_DATA,
-            ),
-            headers=QX100_COMMON_HEADERS,
-        ) as response:
-            result = await response.json()
-            assert result == dict(result=[0], id=1), 'Shoot mode change failed'
+async def set_shoot_mode(shoot_mode: ShootMode) -> bool:
+    async with ClientSession(timeout=timeout) as session:
+        try:
+            async with session.post(
+                f'{QX100_BASE_URL}/camera',
+                json=dict(
+                    method='setShootMode',
+                    params=[shoot_mode.value[0]],
+                    **QX100_COMMON_DATA,
+                ),
+                headers=QX100_COMMON_HEADERS,
+            ) as response:
+                result = await response.json()
+                return result == dict(result=[0], id=1)
+        except asyncio.TimeoutError:
+            return False
 
 
-async def get_liveview_url() -> str:
-    async with ClientSession() as session:
-        async with session.post(
-            f'{QX100_BASE_URL}/camera',
-            json=dict(
-                method='startLiveview',
-                params=[],
-                **QX100_COMMON_DATA,
-            ),
-            headers=QX100_COMMON_HEADERS,
-        ) as response:
-            result = await response.json()
-            return result['result'][0]
+async def get_liveview_url() -> typing.Optional[str]:
+    async with ClientSession(timeout=timeout) as session:
+        try:
+            async with session.post(
+                f'{QX100_BASE_URL}/camera',
+                json=dict(
+                    method='startLiveview',
+                    params=[],
+                    **QX100_COMMON_DATA,
+                ),
+                headers=QX100_COMMON_HEADERS,
+            ) as response:
+                result = await response.json()
+                return result['result'][0]
+        except asyncio.TimeoutError:
+            return None
