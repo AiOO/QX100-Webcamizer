@@ -3,6 +3,7 @@ import logging
 import sys
 
 from aiohttp import ClientSession, ClientTimeout
+from aiohttp.client_exceptions import ClientPayloadError, ServerTimeoutError
 from click import Choice, command, option
 from imageio.v3 import imread
 from numpy import uint8 as numpy_uint8
@@ -13,11 +14,10 @@ from qx100 import ShootMode, get_liveview_url, set_shoot_mode
 
 logging.basicConfig(format='[%(levelname)s - %(asctime)s] %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 async def capture_liveview_images(liveview_url: str, camera: Camera):
-    async with ClientSession(timeout=ClientTimeout()) as session:
+    async with ClientSession(timeout=ClientTimeout(sock_read=5)) as session:
         async with session.get(liveview_url) as response:
             try:
                 buffer = b''
@@ -39,25 +39,30 @@ async def capture_liveview_images(liveview_url: str, camera: Camera):
                         buffer = content[start_index:]
                     else:
                         buffer += content
-            except GeneratorExit:
+            except ClientPayloadError:
                 camera.close()
+                raise
 
 
 async def main_loop(shoot_mode: ShootMode):
-    logger.info('Changing shoot mode...')
-    is_set_shoot_mode_succeeded = await set_shoot_mode(shoot_mode)
-    if not is_set_shoot_mode_succeeded:
-        logger.error('Changing shoot mode is failed')
-        return
-    logger.info('Getting liveview url...')
-    liveview_url = await get_liveview_url()
-    if liveview_url is None:
-        logger.error('Getting liveview url is failed')
-        return
-    logger.info('Starting camera...')
-    with Camera(*shoot_mode.value[1], 30) as camera:
-        logger.info('Camera started')
-        await capture_liveview_images(liveview_url, camera)
+    while True:
+        logger.info('Changing shoot mode...')
+        is_set_shoot_mode_succeeded = await set_shoot_mode(shoot_mode)
+        if not is_set_shoot_mode_succeeded:
+            logger.error('Changing shoot mode is failed.')
+            continue
+        logger.info('Getting liveview url...')
+        liveview_url = await get_liveview_url()
+        if liveview_url is None:
+            logger.error('Getting liveview url is failed.')
+            continue
+        logger.info('Starting camera...')
+        with Camera(*shoot_mode.value[1], 30) as camera:
+            logger.info('Camera started.')
+            try:
+                await capture_liveview_images(liveview_url, camera)
+            except (ClientPayloadError, ServerTimeoutError):
+                logger.error('Connection closed.')
 
 
 @command()
@@ -68,7 +73,16 @@ async def main_loop(shoot_mode: ShootMode):
     help='Choose camera shoot mode.',
     show_default='still',
 )
-def main(mode: str):
+@option(
+    '--log-level',
+    type=Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
+    default='INFO',
+    help='Choose log level.',
+    show_default='INFO',
+)
+def main(mode: str, log_level: str):
+    logger.setLevel(logging.getLevelName(log_level))
+    logger.info('Webcamizer started!')
     loop = asyncio.new_event_loop()
     loop.run_until_complete(main_loop(ShootMode[mode]))
 

@@ -4,6 +4,7 @@ import json
 import typing
 
 from aiohttp import ClientSession, ClientTimeout
+from aiohttp.client_exceptions import ClientConnectorError
 
 QX100_HOST = '10.0.0.1'
 QX100_PORT = 10000
@@ -18,7 +19,9 @@ QX100_COMMON_DATA = {
     'version': '1.0',
 }
 
-timeout = ClientTimeout(total=3)
+COMMON_TIMEOUT_SEC = 3
+
+timeout = ClientTimeout(total=COMMON_TIMEOUT_SEC)
 
 
 class ShootMode(enum.Enum):
@@ -42,6 +45,9 @@ async def set_shoot_mode(shoot_mode: ShootMode) -> bool:
                 return result == dict(result=[0], id=1)
         except asyncio.TimeoutError:
             return False
+        except ClientConnectorError:
+            await asyncio.sleep(COMMON_TIMEOUT_SEC)
+            return False
 
 
 async def get_liveview_url() -> typing.Optional[str]:
@@ -59,4 +65,7 @@ async def get_liveview_url() -> typing.Optional[str]:
                 result = await response.json()
                 return result['result'][0]
         except asyncio.TimeoutError:
+            return None
+        except ClientConnectorError:
+            await asyncio.sleep(COMMON_TIMEOUT_SEC)
             return None
