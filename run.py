@@ -16,6 +16,12 @@ logging.basicConfig(format='[%(levelname)s - %(asctime)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 
+def log_fps(camera: Camera):
+    if camera._last_frame_t - camera._fps_last_printed > 1:
+        camera._fps_last_printed = camera._last_frame_t
+        logger.debug(f'Current FPS: {camera._fps_counter.avg_fps:.1f}')
+
+
 async def capture_liveview_images(liveview_url: str, camera: Camera):
     async with ClientSession(timeout=ClientTimeout(sock_read=5)) as session:
         async with session.get(liveview_url) as response:
@@ -34,6 +40,7 @@ async def capture_liveview_images(liveview_url: str, camera: Camera):
                             )
                             frame[0 : camera.height, 0 : camera.width] = image
                             camera.send(frame)
+                            log_fps(camera)
                             camera.sleep_until_next_frame()
                     if start_index != -1:
                         buffer = content[start_index:]
