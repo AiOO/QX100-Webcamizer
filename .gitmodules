@@ -1,4 +1,0 @@
-[submodule "pyvirtualcam"]
-	path = pyvirtualcam
-	url = git@github.com:letmaik/pyvirtualcam.git
-	ignore = untracked
